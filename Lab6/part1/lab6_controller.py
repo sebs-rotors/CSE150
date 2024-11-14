@@ -34,6 +34,11 @@ class Routing (object):
       self.connection.send(of.ofp_packet_out(data=packet_in))
       print("Packet Dropped - Flow Table Installed on Switches")
 
+    # Handle ARP traffic first
+    if packet.find('arp') is not None:
+      accept(packet, packet_in)
+      return
+
     # Get IP packet if it exists
     ip_packet = packet.find('ipv4')
     if not ip_packet:
@@ -60,7 +65,7 @@ class Routing (object):
         dst_in_subnet = subnet
 
     # Handle ICMP traffic
-    if packet.find('icmp'):
+    if packet.find('icmp') is not None:
       # Allow if same subnet
       if src_in_subnet and src_in_subnet == dst_in_subnet:
         accept(packet, packet_in)
@@ -75,7 +80,7 @@ class Routing (object):
         return
 
     # Handle TCP traffic  
-    elif packet.find('tcp'):
+    elif packet.find('tcp') is not None:
       # Check if trying to access exam server
       if str(dst_ip) == '10.100.100.2' and src_in_subnet != faculty_subnet:
         drop(packet, packet_in)
@@ -97,7 +102,7 @@ class Routing (object):
         return
 
     # Handle UDP traffic
-    elif packet.find('udp'):
+    elif packet.find('udp') is not None:
       # Allow if same subnet
       if src_in_subnet and src_in_subnet == dst_in_subnet:
         accept(packet, packet_in)
