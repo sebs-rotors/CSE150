@@ -71,15 +71,27 @@ class Routing (object):
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
-      accept(packet, packet_in)
-      return
+        arp_packet = packet.find('arp')
+        print(f"\nARP packet detected:")
+        print(f"  Operation: {'REQUEST' if arp_packet.opcode == arp.REQUEST else 'REPLY'}")
+        print(f"  Source: {arp_packet.hwsrc} ({arp_packet.protosrc})")
+        print(f"  Destination: {arp_packet.hwdst} ({arp_packet.protodst})")
+        accept(packet, packet_in)
+        return
 
     # Get IP packet if it exists
     ip_packet = packet.find('ipv4')
     if not ip_packet:
-      drop(packet, packet_in)
-      return
+        print(f"\nNon-IP packet detected - dropping")
+        print(f"  Source MAC: {packet.src}")
+        print(f"  Destination MAC: {packet.dst}")
+        drop(packet, packet_in)
+        return
 
+    print(f"\nIP packet detected:")
+    print(f"  Source: {packet.src} ({ip_packet.srcip})")
+    print(f"  Destination: {packet.dst} ({ip_packet.dstip})")
+    
     src_ip = ip_packet.srcip
     dst_ip = ip_packet.dstip
 
