@@ -29,17 +29,24 @@ class Routing (object):
       msg.idle_timeout = 45
       msg.hard_timeout = 600
       msg.buffer_id = packet_in.buffer_id
-      msg.actions.append(of.ofp_action_output(port=out_port if out_port is not None else of.OFPP_FLOOD))
+      
+      # If no specific output port is given, flood within the VLAN/subnet
+      if out_port is None:
+          msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+      else:
+          msg.actions.append(of.ofp_action_output(port=out_port))
+      
       self.connection.send(msg)
       
       # Send packet immediately if not buffered
       if packet_in.buffer_id == of.NO_BUFFER:
           data = packet_in.data
-          out = of.ofp_packet_out(data=data,
-                                action=msg.actions)
+          out = of.ofp_packet_out(in_port=packet_in.in_port,
+                                data=data,
+                                actions=msg.actions)
           self.connection.send(out)
       
-      print("Packet Accepted - Flow Rule Installed")
+      print(f"Packet Accepted - Flow Rule Installed for {packet.src} -> {packet.dst}")
 
     def drop(packet, packet_in):
       # Install flow rule
