@@ -23,27 +23,97 @@ class Routing (object):
 
     # Your code here
     def accept(packet, packet_in, out_port=None):
-      msg = of.ofp_packet_out()
-      msg.data = packet_in
-      msg.idle_timeout = 45
-      msg.hard_timeout = 600
-
-      if out_port is not None:
-        msg.actions.append(of.ofp_action_output(port=out_port))
-      else: msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD)) # specifically for ARP packets
-
+      msg = of.ofp_packet_out(data=packet_in,
+                             idle_timeout=45,
+                             hard_timeout=600)
+      msg.actions.append(of.ofp_action_output(port=out_port if out_port is not None else of.OFPP_FLOOD))
       self.connection.send(msg)
       print("Packet Accepted - Flow Table Installed on Switches")
 
     def drop(packet, packet_in):
-      msg = of.ofp_packet_out()
-      msg.data = packet_in
-      self.connection.send(msg)
+      self.connection.send(of.ofp_packet_out(data=packet_in))
       print("Packet Dropped - Flow Table Installed on Switches")
 
+    # Get IP packet if it exists
+    ip_packet = packet.find('ipv4')
+    if not ip_packet:
+      drop(packet, packet_in)
+      return
 
-    pass
+    src_ip = ip_packet.srcip
+    dst_ip = ip_packet.dstip
 
+    # Define subnets
+    student_subnet = ipaddress.ip_network('10.0.2.0/24')
+    faculty_subnet = ipaddress.ip_network('10.0.1.0/24')
+    it_subnet = ipaddress.ip_network('10.40.3.0/24')
+    datacenter_subnet = ipaddress.ip_network('10.100.100.0/24')
+    
+    src_in_subnet = None
+    dst_in_subnet = None
+    
+    # Determine which subnets source and destination belong to
+    for subnet in [student_subnet, faculty_subnet, it_subnet, datacenter_subnet]:
+      if ipaddress.ip_address(str(src_ip)) in subnet:
+        src_in_subnet = subnet
+      if ipaddress.ip_address(str(dst_ip)) in subnet:
+        dst_in_subnet = subnet
+
+    # Handle ICMP traffic
+    if packet.find('icmp'):
+      # Allow if same subnet
+      if src_in_subnet and src_in_subnet == dst_in_subnet:
+        accept(packet, packet_in)
+        return
+      # Allow between Student, Faculty and IT
+      elif src_in_subnet in [student_subnet, faculty_subnet, it_subnet] and \
+           dst_in_subnet in [student_subnet, faculty_subnet, it_subnet]:
+        accept(packet, packet_in)
+        return
+      else:
+        drop(packet, packet_in)
+        return
+
+    # Handle TCP traffic  
+    elif packet.find('tcp'):
+      # Check if trying to access exam server
+      if str(dst_ip) == '10.100.100.2' and src_in_subnet != faculty_subnet:
+        drop(packet, packet_in)
+        return
+        
+      # Allow if same subnet
+      if src_in_subnet and src_in_subnet == dst_in_subnet:
+        accept(packet, packet_in)
+        return
+      # Allow between Data Center, IT, Faculty, Student, and trustedPC
+      elif (src_in_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet] or \
+            str(src_ip) == '10.0.203.6') and \
+           (dst_in_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet] or \
+            str(dst_ip) == '10.0.203.6'):
+        accept(packet, packet_in)
+        return
+      else:
+        drop(packet, packet_in)
+        return
+
+    # Handle UDP traffic
+    elif packet.find('udp'):
+      # Allow if same subnet
+      if src_in_subnet and src_in_subnet == dst_in_subnet:
+        accept(packet, packet_in)
+        return
+      # Allow between Data Center, IT, Faculty and Student
+      elif src_in_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet] and \
+           dst_in_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet]:
+        accept(packet, packet_in)
+        return
+      else:
+        drop(packet, packet_in)
+        return
+        
+    # Drop all other traffic
+    drop(packet, packet_in)
+    return
   def _handle_PacketIn (self, event):
     """
     Handles packet in messages from the switch.
