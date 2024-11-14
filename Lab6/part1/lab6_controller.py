@@ -29,6 +29,7 @@ class Routing (object):
       msg.idle_timeout = 45
       msg.hard_timeout = 600
       msg.buffer_id = packet_in.buffer_id
+      msg.priority = 65535 # Set high priority for accepted flows
       
       # If no specific output port is given, flood within the VLAN/subnet
       if out_port is None:
@@ -55,7 +56,8 @@ class Routing (object):
       msg.idle_timeout = 45
       msg.hard_timeout = 600
       msg.buffer_id = packet_in.buffer_id
-      msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+      msg.priority = 1 # Set low priority for dropped flows
+      # Remove flooding action for dropped packets
       self.connection.send(msg)
       
       # Send packet immediately if not buffered
