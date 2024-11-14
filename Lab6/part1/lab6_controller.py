@@ -23,16 +23,42 @@ class Routing (object):
 
     # Your code here
     def accept(packet, packet_in, out_port=None):
-      msg = of.ofp_packet_out(data=packet_in,
-                             idle_timeout=45,
-                             hard_timeout=600)
+      # Install flow rule
+      msg = of.ofp_flow_mod()
+      msg.match = of.ofp_match.from_packet(packet)
+      msg.idle_timeout = 45
+      msg.hard_timeout = 600
+      msg.buffer_id = packet_in.buffer_id
       msg.actions.append(of.ofp_action_output(port=out_port if out_port is not None else of.OFPP_FLOOD))
       self.connection.send(msg)
-      print("Packet Accepted - Flow Table Installed on Switches")
+      
+      # Send packet immediately if not buffered
+      if packet_in.buffer_id == of.NO_BUFFER:
+          data = packet_in.data
+          out = of.ofp_packet_out(data=data,
+                                action=msg.actions)
+          self.connection.send(out)
+      
+      print("Packet Accepted - Flow Rule Installed")
 
     def drop(packet, packet_in):
-      self.connection.send(of.ofp_packet_out(data=packet_in))
-      print("Packet Dropped - Flow Table Installed on Switches")
+      # Install flow rule
+      msg = of.ofp_flow_mod()
+      msg.match = of.ofp_match.from_packet(packet)
+      msg.idle_timeout = 45
+      msg.hard_timeout = 600
+      msg.buffer_id = packet_in.buffer_id
+      msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+      self.connection.send(msg)
+      
+      # Send packet immediately if not buffered
+      if packet_in.buffer_id == of.NO_BUFFER:
+          data = packet_in.data
+          out = of.ofp_packet_out(data=data,
+                                action=msg.actions)
+          self.connection.send(out)
+      
+      print("Packet Dropped - Flow Rule Installed")
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
