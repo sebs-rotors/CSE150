@@ -150,7 +150,7 @@ class Routing (object):
     if packet.find('icmp') is not None:
         print("ICMP packet detected")
         
-        # Check if source and destination are in allowed subnets
+        # Check subnet membership
         src_in_student = ipaddress.ip_address(src_ip) in student_subnet
         src_in_faculty = ipaddress.ip_address(src_ip) in faculty_subnet
         src_in_it = ipaddress.ip_address(src_ip) in it_subnet
@@ -159,33 +159,38 @@ class Routing (object):
         dst_in_faculty = ipaddress.ip_address(dst_ip) in faculty_subnet
         dst_in_it = ipaddress.ip_address(dst_ip) in it_subnet
 
-        # Check if source and destination are in same subnet
-        same_subnet = (
-            (src_in_student and dst_in_student) or
-            (src_in_faculty and dst_in_faculty) or
-            (src_in_it and dst_in_it)
-        )
-
-        # Check if communication is between allowed subnets
-        allowed_subnets = (
-            (src_in_student or src_in_faculty or src_in_it) and
-            (dst_in_student or dst_in_faculty or dst_in_it)
-        )
-
-        if not (same_subnet or allowed_subnets):
-            print("ICMP traffic not allowed between these subnets")
-            drop(packet, packet_in)
-            return
-
-        # Get the next hop port
-        out_port = get_next_hop_port(src_ip, dst_ip, switch_id)
+        # Handle routing based on switch
+        if switch_id == 1:  # Core switch
+            if dst_in_faculty:
+                accept(packet, packet_in, s1_ports['s2'])
+            elif dst_in_student:
+                accept(packet, packet_in, s1_ports['s3'])
+            elif dst_in_it:
+                accept(packet, packet_in, s1_ports['s5'])
+            else:
+                drop(packet, packet_in)
         
-        if out_port is not None:
-            print(f"Routing ICMP packet on switch s{switch_id} from port {port_on_switch} to port {out_port}")
-            accept(packet, packet_in, out_port)
+        elif switch_id == 5:  # IT switch
+            if str(dst_ip) in s5_ports:  # Destination is in this subnet
+                accept(packet, packet_in, s5_ports[str(dst_ip)])
+            else:  # Need to forward to core switch
+                accept(packet, packet_in, s5_ports['s1'])
+        
+        elif switch_id == 2:  # Faculty switch
+            if str(dst_ip) in s2_ports:
+                accept(packet, packet_in, s2_ports[str(dst_ip)])
+            else:
+                accept(packet, packet_in, s2_ports['s1'])
+        
+        elif switch_id == 3:  # Student switch
+            if str(dst_ip) in s3_ports:
+                accept(packet, packet_in, s3_ports[str(dst_ip)])
+            else:
+                accept(packet, packet_in, s3_ports['s1'])
+        
         else:
-            print(f"No route found for ICMP packet on switch s{switch_id}")
             drop(packet, packet_in)
+        return
 
     # Rule 2: TCP Traffic
     elif packet.find('tcp') is not None:
