@@ -3,6 +3,7 @@
 from pox.core import core
 
 import pox.openflow.libopenflow_01 as of
+import ipaddress
 
 log = core.getLogger()
 
@@ -15,13 +16,32 @@ class Routing (object):
 
     # This binds our PacketIn event listener
     connection.addListeners(self)
-
+  
   def do_routing (self, packet, packet_in, port_on_switch, switch_id):
     # port_on_swtich - the port on which this packet was received
     # switch_id - the switch which received this packet
 
     # Your code here
-    
+    def accept(packet, packet_in, out_port=None):
+      msg = of.ofp_packet_out()
+      msg.data = packet_in
+      msg.idle_timeout = 45
+      msg.hard_timeout = 600
+
+      if out_port is not None:
+        msg.actions.append(of.ofp_action_output(port=out_port))
+      else: msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD)) # specifically for ARP packets
+
+      self.connection.send(msg)
+      print("Packet Accepted - Flow Table Installed on Switches")
+
+    def drop(packet, packet_in):
+      msg = of.ofp_packet_out()
+      msg.data = packet_in
+      self.connection.send(msg)
+      print("Packet Dropped - Flow Table Installed on Switches")
+
+
     pass
 
   def _handle_PacketIn (self, event):
