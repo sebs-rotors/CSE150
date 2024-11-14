@@ -27,6 +27,12 @@ class Routing (object):
         msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD if out_port is None else out_port))
         msg.data = packet_in
         self.connection.send(msg)
+        
+        # Add this line to handle the packet immediately
+        msg2 = of.ofp_packet_out()
+        msg2.data = packet_in
+        msg2.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD if out_port is None else out_port))
+        self.connection.send(msg2)
 
     def drop(packet, packet_in):
         """Drop a packet and install a flow rule to continue dropping similar packets"""
