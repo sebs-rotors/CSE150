@@ -18,6 +18,25 @@ class Routing (object):
     connection.addListeners(self)
   
   def do_routing (self, packet, packet_in, port_on_switch, switch_id):
+    def accept(packet, packet_in, out_port=None):
+        """Accept a packet and install a flow rule"""
+        msg = of.ofp_flow_mod()
+        msg.match = of.ofp_match.from_packet(packet)
+        msg.idle_timeout = 45
+        msg.hard_timeout = 300
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD if out_port is None else out_port))
+        msg.data = packet_in
+        self.connection.send(msg)
+
+    def drop(packet, packet_in):
+        """Drop a packet and install a flow rule to continue dropping similar packets"""
+        msg = of.ofp_flow_mod()
+        msg.match = of.ofp_match.from_packet(packet)
+        msg.idle_timeout = 45
+        msg.hard_timeout = 300
+        msg.data = packet_in
+        self.connection.send(msg)
+
     # Handle ARP traffic first
     if packet.find('arp') is not None:
         accept(packet, packet_in, of.OFPP_FLOOD)
