@@ -18,7 +18,11 @@ class Routing (object):
     connection.addListeners(self)
   
   def do_routing (self, packet, packet_in, port_on_switch, switch_id):
+    # Add debug logging at the start
+    print(f"\nPacket received on switch s{switch_id} port {port_on_switch}")
+    
     def accept(packet, packet_in, out_port=None):
+        print(f"Accepting packet on switch s{switch_id}: in_port={port_on_switch}, out_port={out_port}")
         """Accept a packet and install a flow rule"""
         msg = of.ofp_flow_mod()
         msg.match = of.ofp_match.from_packet(packet)
@@ -33,6 +37,7 @@ class Routing (object):
         msg2.data = packet_in
         msg2.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD if out_port is None else out_port))
         self.connection.send(msg2)
+        print("Packet sent immediately")
 
     def drop(packet, packet_in):
         """Drop a packet and install a flow rule to continue dropping similar packets"""
@@ -42,6 +47,7 @@ class Routing (object):
         msg.hard_timeout = 300
         msg.data = packet_in
         self.connection.send(msg)
+        print("Packet dropped")
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
@@ -66,17 +72,48 @@ class Routing (object):
     datacenter_subnet = ipaddress.ip_network('10.100.100.0/24')
 
     # Subnet to port mapping on core switch
-    SUBNET_PORTS = {
-        faculty_subnet: 1,    # Faculty -> port 1
-        student_subnet: 2,    # Student -> port 2
-        datacenter_subnet: 3, # DataCenter -> port 3
-        it_subnet: 4,        # IT -> port 4
+    SWITCH_PORTS = {
+        1: {  # Core switch (s1)
+            'faculty': 1,    # to s2
+            'student': 2,    # to s3
+            'datacenter': 3, # to s4
+            'it': 4,        # to s5
+        },
+        2: {  # Faculty switch (s2)
+            'core': 1,      # to s1
+            'hosts': [2, 3, 4]  # to faculty hosts
+        },
+        3: {  # Student switch (s3)
+            'core': 1,      # to s1
+            'hosts': [2, 3, 4]  # to student hosts
+        },
+        4: {  # Datacenter switch (s4)
+            'core': 1,      # to s1
+            'hosts': [2, 3, 4]  # to datacenter hosts
+        },
+        5: {  # IT switch (s5)
+            'core': 1,      # to s1
+            'itws': 2,      # to itWS
+            'itpc': 3       # to itPC
+        }
     }
+
+    # Helper function to get port for subnet on core switch
+    def get_core_port_for_subnet(subnet):
+        if subnet == faculty_subnet:
+            return SWITCH_PORTS[1]['faculty']
+        elif subnet == student_subnet:
+            return SWITCH_PORTS[1]['student'] 
+        elif subnet == datacenter_subnet:
+            return SWITCH_PORTS[1]['datacenter']
+        elif subnet == it_subnet:
+            return SWITCH_PORTS[1]['it']
+        return None
 
     # Determine which subnets source and destination belong to
     src_subnet = None
     dst_subnet = None
-    for subnet in SUBNET_PORTS.keys():
+    for subnet in [student_subnet, faculty_subnet, it_subnet, datacenter_subnet]:
         if ipaddress.ip_address(str(src_ip)) in subnet:
             print(f"Source IP {src_ip} is in subnet {subnet}")
             src_subnet = subnet
@@ -89,13 +126,16 @@ class Routing (object):
         print("ICMP packet detected")
         # Allow if same subnet
         if src_subnet and src_subnet == dst_subnet:
-            accept(packet, packet_in, port_on_switch if switch_id != 1 else SUBNET_PORTS[dst_subnet])
+            if switch_id == 1:
+                accept(packet, packet_in, get_core_port_for_subnet(dst_subnet))
+            else:
+                accept(packet, packet_in, port_on_switch)
             return
         # Allow between Student, Faculty and IT
         elif src_subnet in [student_subnet, faculty_subnet, it_subnet] and \
              dst_subnet in [student_subnet, faculty_subnet, it_subnet]:
             if switch_id == 1:  # Core switch
-                accept(packet, packet_in, SUBNET_PORTS[dst_subnet])
+                accept(packet, packet_in, get_core_port_for_subnet(dst_subnet))
             else:  # Edge switch
                 accept(packet, packet_in, 1)  # Forward to core
             return
@@ -112,7 +152,10 @@ class Routing (object):
         
         # Allow if same subnet
         if src_subnet and src_subnet == dst_subnet:
-            accept(packet, packet_in, port_on_switch if switch_id != 1 else SUBNET_PORTS[dst_subnet])
+            if switch_id == 1:
+                accept(packet, packet_in, get_core_port_for_subnet(dst_subnet))
+            else:
+                accept(packet, packet_in, port_on_switch)
             return
         # Allow between Data Center, IT, Faculty, Student, and trustedPC
         elif (src_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet] or \
@@ -123,7 +166,7 @@ class Routing (object):
                 if str(dst_ip) == '10.0.203.6':
                     accept(packet, packet_in, 7)  # trustedPC port
                 else:
-                    accept(packet, packet_in, SUBNET_PORTS[dst_subnet])
+                    accept(packet, packet_in, get_core_port_for_subnet(dst_subnet))
             else:  # Edge switch
                 accept(packet, packet_in, 1)  # Forward to core
             return
@@ -135,13 +178,16 @@ class Routing (object):
         print("UDP packet detected")
         # Allow if same subnet
         if src_subnet and src_subnet == dst_subnet:
-            accept(packet, packet_in, port_on_switch if switch_id != 1 else SUBNET_PORTS[dst_subnet])
+            if switch_id == 1:
+                accept(packet, packet_in, get_core_port_for_subnet(dst_subnet))
+            else:
+                accept(packet, packet_in, port_on_switch)
             return
         # Allow between Data Center, IT, Faculty and Student
         elif src_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet] and \
              dst_subnet in [datacenter_subnet, it_subnet, faculty_subnet, student_subnet]:
             if switch_id == 1:  # Core switch
-                accept(packet, packet_in, SUBNET_PORTS[dst_subnet])
+                accept(packet, packet_in, get_core_port_for_subnet(dst_subnet))
             else:  # Edge switch
                 accept(packet, packet_in, 1)  # Forward to core
             return
