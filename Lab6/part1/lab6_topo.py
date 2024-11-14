@@ -23,11 +23,11 @@ class MyTopology(Topo):
     
     # We're gonna do hosts and links BY NETWORK:
     # University Data Center
-    facultyExamServer = self.addHost('FacultyExamServer', ip='10.100.100.2/24', mac='00:00:00:00:00:01')
+    examServer = self.addHost('examServer', ip='10.100.100.2/24', mac='00:00:00:00:00:01')
     webServer = self.addHost('webServer', ip='10.100.100.20/24', mac='00:00:00:00:00:02')
     dnsServer = self.addHost('dnsServer', ip='10.100.100.56/24', mac='00:00:00:00:00:03')
     
-    self.addLink(facultyExamServer, dataCenterSwitch, port1=1, port2=2)
+    self.addLink(examServer, dataCenterSwitch, port1=1, port2=2)
     self.addLink(webServer, dataCenterSwitch, port1=1, port2=3)
     self.addLink(dnsServer, dataCenterSwitch, port1=1, port2=4)
     
