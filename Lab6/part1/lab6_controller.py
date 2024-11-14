@@ -1,8 +1,8 @@
 # Lab5 Skeleton
 
 from pox.core import core
-
 import pox.openflow.libopenflow_01 as of
+import pox.lib.packet as pkt
 import ipaddress
 
 log = core.getLogger()
@@ -73,7 +73,7 @@ class Routing (object):
     if packet.find('arp') is not None:
         arp_packet = packet.find('arp')
         print(f"\nARP packet detected:")
-        print(f"  Operation: {'REQUEST' if arp_packet.opcode == arp.REQUEST else 'REPLY'}")
+        print(f"  Operation: {'REQUEST' if arp_packet.opcode == pkt.arp.REQUEST else 'REPLY'}")
         print(f"  Source: {arp_packet.hwsrc} ({arp_packet.protosrc})")
         print(f"  Destination: {arp_packet.hwdst} ({arp_packet.protodst})")
         accept(packet, packet_in)
