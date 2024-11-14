@@ -39,7 +39,7 @@ class Routing (object):
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
-        accept(packet, packet_in, of.OFPP_FLOOD)
+        accept(packet, packet_in)
         return
 
     # Get IP packet
@@ -72,12 +72,15 @@ class Routing (object):
     dst_subnet = None
     for subnet in SUBNET_PORTS.keys():
         if ipaddress.ip_address(str(src_ip)) in subnet:
+            print(f"Source IP {src_ip} is in subnet {subnet}")
             src_subnet = subnet
         if ipaddress.ip_address(str(dst_ip)) in subnet:
+            print(f"Destination IP {dst_ip} is in subnet {subnet}")
             dst_subnet = subnet
 
     # Rule 1: ICMP Traffic
     if packet.find('icmp') is not None:
+        print("ICMP packet detected")
         # Allow if same subnet
         if src_subnet and src_subnet == dst_subnet:
             accept(packet, packet_in, port_on_switch if switch_id != 1 else SUBNET_PORTS[dst_subnet])
@@ -95,6 +98,7 @@ class Routing (object):
 
     # Rule 2: TCP Traffic
     elif packet.find('tcp') is not None:
+        print("TCP packet detected")
         # Check exam server access restriction
         if str(dst_ip) == '10.100.100.2' and src_subnet != faculty_subnet:
             drop(packet, packet_in)
@@ -122,6 +126,7 @@ class Routing (object):
 
     # Rule 3: UDP Traffic
     elif packet.find('udp') is not None:
+        print("UDP packet detected")
         # Allow if same subnet
         if src_subnet and src_subnet == dst_subnet:
             accept(packet, packet_in, port_on_switch if switch_id != 1 else SUBNET_PORTS[dst_subnet])
