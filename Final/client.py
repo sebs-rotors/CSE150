@@ -88,8 +88,9 @@ while True:
                 for line in server_response.split("\r\n"):
                     if line.startswith("clientID:"):
                         peer_id = line.split(":")[1].strip()
-                        if peer_id == None:
+                        if peer_id == "":
                             client_state = "Wait"
+                            break
                         else:
                             client_state = "Chat"
                             client_socket.close()
