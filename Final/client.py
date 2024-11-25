@@ -43,11 +43,15 @@ parser.add_argument("--port", type=int, required=True, help="Client Port")
 parser.add_argument("--server", required=True, help="Server IP and Port (e.g., 127.0.0.1:5000)")
 args = parser.parse_args()
 
+if (args.port != None and isinstance(args.port, int) and args.port > 0 and args.port < 65536):
+    client_port = args.port 
+else:
+    client_port = 5001
+    print("Error: Invalid client port. Using default port 5001.")
 client_state = "Zero"
 client_registered = False
 client_socket = None
 client_id = args.id
-client_port = args.port
 peer_id = None
 peer_ip = None
 peer_port = None
