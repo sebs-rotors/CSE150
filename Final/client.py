@@ -39,7 +39,7 @@ def quit_to_peer(client_socket):
 
 parser = argparse.ArgumentParser(description="TCP Client for Chat Application")
 parser.add_argument("--id", required=True, help="Client ID")
-parser.add_argument("--port", type=int, required=True, help="Client Port")
+parser.add_argument("--port", required=True, help="Client Port")
 parser.add_argument("--server", required=True, help="Server IP and Port (e.g., 127.0.0.1:5000)")
 args = parser.parse_args()
 
