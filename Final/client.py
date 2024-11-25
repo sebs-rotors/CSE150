@@ -68,9 +68,20 @@ except ValueError:
     sys.exit(1)
 
 while True:
-    if client_state == "Zero":
-        # Wait for user input to register, bridge, chat, or quit
+    # Check input first to stall while waiting for commands. Bypassed when quitting.
+    if client_state != "Quit":
         user_input = sys.stdin.readline().strip()
+    else: user_input = None
+
+    # Common commands: /id, /quit
+    if user_input == "/id":
+        print(f"Client ID: {client_id}")
+    elif user_input == "/quit":
+        quit_to_peer(client_socket)
+        break
+
+    # Zero state: handling for /register, /bridge
+    if client_state == "Zero":
         if user_input == "/register":
             # Connect to the server
             if not client_socket:
@@ -118,4 +129,4 @@ while True:
         client_state = "Quit"
     elif client_state == "Quit":
         print("Quitting...")
-        break
+        sys.exit(0)
