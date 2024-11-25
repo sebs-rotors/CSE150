@@ -54,12 +54,13 @@ peer_port = None
 server_address = args.server
 server_ip, server_port = server_address.split(":")
 
-# Validating server port and address
+# Validating client and server port and address
 try:
+    client_port = int(client_port)
     ipaddress.ip_address(server_ip)
     server_port = int(server_port)
 except ValueError:
-    print("Error: Invalid server address format. Use <IP>:<Port>.")
+    print("Error: Invalid client or server address format. Use --port=<Port> --server='<IP>:<Port>'.")
     sys.exit(1)
 
 while True:
@@ -73,12 +74,11 @@ while True:
                     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     client_socket.connect((server_ip, server_port))
                     print(f"Connected to server at {server_ip}:{server_port}")
+                    # Register with the server
+                    register(client_socket, client_id, "127.0.0.1", client_port)
+                    client_registered = True
                 except Exception as e:
                     print(f"Error connecting to server: {e}")
-                    sys.exit(1)
-                # Register with the server
-                register(client_socket, client_id, "127.0.0.1", client_port)
-                client_registered = True
             else:
                 print("Error: Client already connected to server.")
                 continue
@@ -107,36 +107,10 @@ while True:
             print("Error: Invalid command.")
     elif client_state == "Wait":
         print("Waiting for peer connection...")
+        client_state = "Quit"
     elif client_state == "Chat":
         print("Chatting with peer...")
-
-    # try:
-    #     while True:
-    #         # Monitor both stdin and the server socket
-    #         sockets = [client_socket, sys.stdin]
-    #         readable, _, _ = select.select(sockets, [], [])
-
-    #         for sock in readable:
-    #             if sock == client_socket:  # Handle server messages
-    #                 message = client_socket.recv(1024).decode().strip()
-    #                 if not message:
-    #                     print("Server disconnected.")
-    #                     sys.exit(0)
-    #                 print(f"Server: {message}")
-
-    #             elif sock == sys.stdin:  # Handle user input
-    #                 user_input = sys.stdin.readline().strip()
-    #                 if user_input == "/register":
-    #                     register(client_socket, client_id, "127.0.0.1", client_port)
-    #                 elif user_input == "/bridge":
-    #                     bridge(client_socket, client_id)
-    #                 elif user_input == "/id":
-    #                     print(f"Client ID: {client_id}")
-
-    #                 elif user_input == "/quit":
-    #                     quit_to_peer(client_socket)
-    #                     client_socket.close()
-    #                     sys.exit(0)
-    #                 else:
-    #                     print("Error: Invalid command.")
-
+        client_state = "Quit"
+    elif client_state == "Quit":
+        print("Quitting...")
+        break
