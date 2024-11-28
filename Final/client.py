@@ -194,6 +194,7 @@ while True:
             print(f"Connected to peer at {peer_ip}:{peer_port}")
         except Exception as e:
             print(f"Error connecting to peer: {e}")
+            print(f"Relevant Details: {peer_ip}:{peer_port}")
             continue
 
         while client_state == "Chat":
