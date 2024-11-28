@@ -136,13 +136,10 @@ while True:
                             break
                         else:
                             client_state = "Chat"
-                            continue
-                    elif line.startswith("IP:"):
+                    if line.startswith("IP:"):
                         peer_ip = line.split(":")[1].strip()
-                    elif line.startswith("Port:"):
+                    if line.startswith("Port:"):
                         peer_port = int(line.split(":")[1].strip())
-                    else:
-                        print(line)
             else:
                 print("Error: Client not registered.")
                 continue
