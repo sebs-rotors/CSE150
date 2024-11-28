@@ -47,8 +47,12 @@ def chat(client_socket, message):
 def quit_to_peer(client_socket):
     """Send a QUIT message to the peer."""
     quit_message = "QUIT\r\nGoodbye!\r\n\r\n"
-    client_socket.sendall(quit_message.encode())
-    print("QUIT message sent: Goodbye!")
+    try:
+        client_socket.sendall(quit_message.encode())
+        print("QUIT message sent: Goodbye!")
+    except (BrokenPipeError, ConnectionResetError):
+        print("Failed to send: peer disconnected")
+        raise  # Re-raise to handle in main loop
 
 parser = argparse.ArgumentParser(description="TCP Client for Chat Application")
 parser.add_argument("--id", required=True, help="Client ID")
