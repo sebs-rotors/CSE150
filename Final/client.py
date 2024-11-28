@@ -82,8 +82,8 @@ except ValueError:
     sys.exit(1)
 
 while True:
-    # Check input first to stall while waiting for commands. Bypassed when quitting.
-    if client_state != "Quit":
+    # Check input first to stall while waiting for commands. Bypassed when quitting and waiting.
+    if client_state != "Quit" and client_state != "Wait":
         user_input = sys.stdin.readline().strip()
     else: user_input = None
 
@@ -147,9 +147,41 @@ while True:
             print("Error: Invalid command.")
 
     elif client_state == "Wait":
-        read_write = READ
-        print("Waiting for peer connection...")
-        client_state = "Quit"
+        try:
+            # Set up listening socket
+            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_socket.bind(('127.0.0.1', client_port))
+            server_socket.listen(1)
+            print("Waiting for peer connection...")
+
+            while client_state == "Wait":
+                try:
+                    # Check for incoming connections with timeout
+                    readable, _, _ = select.select([server_socket, sys.stdin], [], [], 1.0)
+                    
+                    for sock in readable:
+                        if sock == server_socket:
+                            client_socket, addr = server_socket.accept()
+                            print(f"Peer connected from {addr[0]}:{addr[1]}")
+                            client_state = "Chat"
+                            read_write = READ
+                            break
+                        elif sock == sys.stdin:
+                            user_input = sys.stdin.readline().strip()
+                            if user_input == "/quit":
+                                client_state = "Quit"
+                                break
+                
+                except KeyboardInterrupt:
+                    print("\nCaught interrupt...")
+                    client_state = "Quit"
+                    break
+
+        except Exception as e:
+            print(f"Error in wait state: {e}")
+            client_state = "Quit"
+        finally:
+            server_socket.close()
 
     elif client_state == "Chat":
         try:
