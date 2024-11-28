@@ -61,7 +61,7 @@ parser.add_argument("--port", type=int, required=True, help="Client Port")
 parser.add_argument("--server", required=True, help="Server IP and Port (e.g., 127.0.0.1:5000)")
 args = parser.parse_args()
 
-if (args.port > 0 and args.port < 65536):
+if (args.port > 1024 and args.port < 65536):
     client_port = args.port 
 else:
     client_port = 5001
