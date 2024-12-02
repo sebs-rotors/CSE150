@@ -188,9 +188,11 @@ while True:
 
     elif client_state == "Chat":
         try:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((peer_ip, peer_port))
-            print(f"Connected to peer at {peer_ip}:{peer_port}")
+            # Only create new connection if we don't already have one
+            if not client_socket:
+                client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client_socket.connect((peer_ip, peer_port))
+                print(f"Connected to peer at {peer_ip}:{peer_port}")
         except Exception as e:
             print(f"Error connecting to peer: {e}")
             print(f"Relevant Details: {peer_ip}:{peer_port}")
