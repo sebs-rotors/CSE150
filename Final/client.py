@@ -176,7 +176,6 @@ while True:
                                 break
                             else:
                                 print("Can't send message while waiting to connect")
-                
                 except KeyboardInterrupt:
                     print("\nCaught interrupt...")
                     client_state = "Quit"
@@ -263,6 +262,7 @@ while True:
                 break
 
     elif client_state == "Quit":
-        quit_to_peer(client_socket)
-        client_socket.close()
+        if client_socket:
+            quit_to_peer(client_socket)
+            client_socket.close()
         sys.exit(0)
