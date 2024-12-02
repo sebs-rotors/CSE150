@@ -156,11 +156,12 @@ while True:
             server_socket.listen(1)
             print("Waiting for peer connection...")
 
+            # Setting up listener so it doesn't redefine it every time the while loop executes
+            readable, _, _ = select.select([server_socket, sys.stdin], [], [], 1.0)
+                    
             while client_state == "Wait":
                 try:
                     # Check for incoming connections with timeout
-                    readable, _, _ = select.select([server_socket, sys.stdin], [], [], 1.0)
-                    
                     for sock in readable:
                         if sock == server_socket:
                             client_socket, addr = server_socket.accept()
@@ -173,6 +174,8 @@ while True:
                             if user_input == "/quit":
                                 client_state = "Quit"
                                 break
+                            else:
+                                print("Can't send message while waiting to connect")
                 
                 except KeyboardInterrupt:
                     print("\nCaught interrupt...")
