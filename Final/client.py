@@ -151,20 +151,18 @@ while True:
     elif client_state == "Wait":
         try:
             # Set up listening socket
-            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind(('127.0.0.1', client_port))
-            server_socket.listen(1)
+            peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            peer_socket.bind(('127.0.0.1', client_port))
+            peer_socket.listen(1)
             print("Waiting for peer connection...")
 
-            # Setting up listener so it doesn't redefine it every time the while loop executes
-            readable, _, _ = select.select([server_socket, sys.stdin], [], [], 1.0)
-                    
             while client_state == "Wait":
                 try:
                     # Check for incoming connections with timeout
+                    readable, _, _ = select.select([peer_socket, sys.stdin], [], [], 1.0)
                     for sock in readable:
-                        if sock == server_socket:
-                            client_socket, addr = server_socket.accept()
+                        if sock == peer_socket:
+                            client_socket, addr = peer_socket.accept()
                             print(f"Peer connected from {addr[0]}:{addr[1]}")
                             client_state = "Chat"
                             read_write = READ
@@ -185,7 +183,8 @@ while True:
             print(f"Error in wait state: {e}")
             client_state = "Quit"
         finally:
-            server_socket.close()
+            if peer_socket:
+                peer_socket.close()
 
     elif client_state == "Chat":
         try:
