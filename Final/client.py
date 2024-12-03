@@ -204,23 +204,33 @@ while True:
             try:
                 # if read_write == 0:
                 #     read_write = WRITE
+                readable, _, _ = select.select([client_socket, sys.stdin], [], [], None)
                 if read_write == WRITE:
-                    chat_input = sys.stdin.readline().strip()
-                    if chat_input == "/quit":
-                        client_state = "Quit"
-                        break
-                    try:
-                        chat(client_socket, chat_input)
-                    except Exception as e:
-                        print(f"Error sending to peer: {e}")
-                        client_state = "Quit"
-                        break
-                    read_write *= -1
+                    if sock == client_socket:
+                        response = client_socket.recv(1024).decode().strip()
+                        if response.startswith("QUIT"):
+                            print("Peer quit")
+                            client_socket.close()
+                            client_socket = None
+                            client_state = "Quit"
+                            break
+                    elif sock == sys.stdin:
+                        chat_input = sys.stdin.readline().strip()
+                        if chat_input == "/quit":
+                            client_state = "Quit"
+                            break
+                        try:
+                            chat(client_socket, chat_input)
+                        except Exception as e:
+                            print(f"Error sending to peer: {e}")
+                            client_state = "Quit"
+                            break
+                        read_write *= -1
+                    else:
+                        continue
+ 
                 elif read_write == READ:
                     try:
-                        # Set up select to monitor both socket and stdin
-                        readable, _, _ = select.select([client_socket, sys.stdin], [], [], 1.0)  # 1 second timeout
-                        
                         for sock in readable:
                             if sock == client_socket:  # Message from peer
                                 response = client_socket.recv(1024).decode().strip()
@@ -233,6 +243,8 @@ while True:
                                     print(lines[1].split(":")[1].strip())
                                 elif response.startswith("QUIT"):
                                     print("Peer quit")
+                                    client_socket.close()
+                                    client_socket = None
                                     client_state = "Quit"
                                     break
                                 else:
@@ -264,6 +276,7 @@ while True:
 
     elif client_state == "Quit":
         if client_socket:
+            print("\n")
             quit_to_peer(client_socket)
             client_socket.close()
         sys.exit(0)
