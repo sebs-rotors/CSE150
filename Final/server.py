@@ -19,7 +19,7 @@ def handle_register(client_socket, client_address, message):
 
     # Store client information
     registered_clients[client_id] = (client_ip, client_port)
-    print(f">REGISTER: {client_id} from {client_ip}:{client_port} received")
+    print(f"REGISTER: {client_id} from {client_ip}:{client_port} received")
 
     # Respond with REGACK
     regack_message = (
@@ -45,8 +45,15 @@ def handle_bridge(client_socket, client_id):
             peer_id, peer_info = registered_id, info
             break
 
+    # Get client's own info from registered_clients
+    client_ip, client_port = registered_clients[client_id]
     peer_ip, peer_port = peer_info
-    print(f">BRIDGE: {client_id} requesting {peer_id or 'None'} {peer_ip}:{peer_port}")
+
+    # Print in requested format
+    if peer_id:
+        print(f"BRIDGE: {client_id} {client_ip}:{client_port} {peer_id} {peer_ip}:{peer_port}")
+    else:
+        print(f"BRIDGE: {client_id} {client_ip}:{client_port}")
 
     # Respond with BRIDGEACK
     bridgeack_message = (
