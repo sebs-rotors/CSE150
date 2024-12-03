@@ -140,7 +140,7 @@ while True:
                 try:
                     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     client_socket.connect((server_ip, server_port))
-                    sys.stdout.write(f"Connected to server at {server_ip}:{server_port}\n")
+                    #sys.stdout.write(f"Connected to server at {server_ip}:{server_port}\n")
                     register(client_socket, client_id, "127.0.0.1", client_port)
                     client_registered = True
                     client_socket.close()
@@ -192,7 +192,7 @@ while True:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             peer_socket.bind(('127.0.0.1', client_port))
             peer_socket.listen(1)
-            sys.stdout.write("Waiting for peer connection...\n")
+            #sys.stdout.write("Waiting for peer connection...\n")
 
             while client_state == "Wait":
                 try:
@@ -225,7 +225,7 @@ while True:
             try:
                 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client_socket.connect((peer_ip, peer_port))
-                sys.stdout.write(f"Connected to peer at {peer_ip}:{peer_port}\n")
+                #sys.stdout.write(f"Connected to peer at {peer_ip}:{peer_port}\n")
                 read_write = WRITE
             except Exception as e:
                 sys.stdout.write(f"Error connecting to peer: {e}\n")
@@ -275,6 +275,7 @@ while True:
                                 client_state = "Quit"
                                 break
                             sys.stdout.write("Can't send message while waiting to receive\n")
+                            sys.stdout.write(user_input)
                 
                 else:
                     sys.stdout.write("Error: Invalid read/write state.\n")
