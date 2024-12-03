@@ -276,7 +276,6 @@ while True:
                                 client_state = "Quit"
                                 break
                             sys.stdout.write("Can't send message while waiting to receive\n")
-                            sys.stdout.write(user_input)
                 
                 else:
                     sys.stdout.write("Error: Invalid read/write state.\n")
