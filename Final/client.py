@@ -157,7 +157,6 @@ while True:
 
             while client_state == "Wait":
                 try:
-                    # Check for incoming connections with timeout
                     readable, _, _ = select.select([peer_socket, sys.stdin], [], [], 1.0)
                     for sock in readable:
                         if sock == peer_socket:
@@ -174,7 +173,6 @@ while True:
                             else:
                                 print("Can't send message while waiting to connect")
                 except KeyboardInterrupt:
-                    print("\nCaught interrupt...")
                     client_state = "Quit"
                     break
 
@@ -187,11 +185,11 @@ while True:
 
     elif client_state == "Chat":
         try:
-            # Only create new connection if we don't already have one
             if not client_socket:
                 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client_socket.connect((peer_ip, peer_port))
                 print(f"Connected to peer at {peer_ip}:{peer_port}")
+                read_write = WRITE
         except Exception as e:
             print(f"Error connecting to peer: {e}")
             print(f"Relevant Details: {peer_ip}:{peer_port}")
@@ -245,7 +243,6 @@ while True:
                                     print("Can't send message while waiting to receive")
                     
                     except KeyboardInterrupt:
-                        print("\n^C")
                         client_state = "Quit"
                         break
                     except Exception as e:
@@ -257,7 +254,6 @@ while True:
                     client_state = "Quit"
                     break
             except KeyboardInterrupt:
-                print("\n^C")
                 client_state = "Quit"
                 break
 
