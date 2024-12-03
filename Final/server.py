@@ -107,6 +107,7 @@ def handle_server_command(command):
             sys.stdout.write(f"{client_id} {ip}:{port}\n")
     else:
         sys.stdout.write("Error: Unknown command.\n")
+        sys.stdout.write(f"Commands: {command}\n")
 
 parser = argparse.ArgumentParser(description="Server for Chat Application")
 parser.add_argument("--port", type=int, required=True, help="Server Port")
