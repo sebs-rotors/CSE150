@@ -208,7 +208,6 @@ while True:
                             if user_input == "/quit":
                                 client_state = "Quit"
                                 break
-                            sys.stdout.write("Can't send message while waiting to connect\n")
                 except KeyboardInterrupt:
                     client_state = "Quit"
                     break
