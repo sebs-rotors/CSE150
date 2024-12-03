@@ -11,7 +11,7 @@ WRITE = 1
 # Signal handler for graceful shutdown
 def signal_handler(signum, frame):
     """Handle interrupt signals gracefully."""
-    sys.stdout.write("\nReceived interrupt signal. Shutting down gracefully...\n")
+    sys.stdout.write("Received interrupt signal. Shutting down gracefully...\n")
     if 'client_socket' in globals() and client_socket:
         try:
             quit_to_peer(client_socket)
@@ -158,7 +158,7 @@ while True:
             try:
                 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client_socket.connect((server_ip, server_port))
-                sys.stdout.write(f"Connected to server at {server_ip}:{server_port}\n")
+                #sys.stdout.write(f"Connected to server at {server_ip}:{server_port}\n")
                 
                 server_response = bridge(client_socket, client_id)
                 for line in server_response.split("\r\n"):
