@@ -126,7 +126,7 @@ while True:
 
     # Handle common commands
     if user_input == "/id":
-        sys.stdout.write(f"Client ID: {client_id}\n")
+        sys.stdout.write(f"{client_id}\n")
     elif user_input == "/quit":
         client_state = "Quit"
         continue
