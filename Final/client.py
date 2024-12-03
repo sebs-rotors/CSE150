@@ -86,8 +86,8 @@ except ValueError:
     sys.exit(1)
 
 while True:
-    # Check input first to stall while waiting for commands. Bypassed when quitting and waiting.
-    if client_state != "Quit" and client_state != "Wait":
+    # Check input first to stall while waiting for commands. Bypassed when quitting and waiting and chatting.
+    if client_state != "Quit" and client_state != "Wait" and client_state != "Chat":
         user_input = sys.stdin.readline().strip()
     else: user_input = None
 
