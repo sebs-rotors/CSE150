@@ -49,7 +49,7 @@ def quit_to_peer(client_socket):
     try:
         if client_socket:
             client_socket.sendall(quit_message.encode())
-            print("QUIT message sent: Goodbye!")
+            print("\nQUIT message sent: Goodbye!")
     except (BrokenPipeError, ConnectionResetError):
         print("Failed to send: peer disconnected")
         raise  # Re-raise to handle in main loop
@@ -277,7 +277,6 @@ while True:
 
     elif client_state == "Quit":
         if client_socket:
-            print("\n")
             quit_to_peer(client_socket)
             client_socket.close()
         sys.exit(0)
