@@ -3,9 +3,26 @@ import select
 import argparse
 import sys
 import ipaddress
+import signal
 
 READ = -1
 WRITE = 1
+
+# Signal handler for graceful shutdown
+def signal_handler(signum, frame):
+    """Handle interrupt signals gracefully."""
+    sys.stdout.write("\nReceived interrupt signal. Shutting down gracefully...\n")
+    if 'client_socket' in globals() and client_socket:
+        try:
+            quit_to_peer(client_socket)
+            client_socket.close()
+        except Exception:
+            pass
+    sys.exit(0)
+
+# Register signal handlers
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 def register(client_socket, client_id, client_ip, client_port):
     """Send a REGISTER request to the server."""
@@ -17,7 +34,7 @@ def register(client_socket, client_id, client_ip, client_port):
     )
     client_socket.sendall(register_request.encode())
     response = client_socket.recv(1024).decode().strip()
-    print("Server response:", response)
+    sys.stdout.write(f"Server response: {response}\n")
     return response
 
 def bridge(client_socket, client_id):
@@ -28,7 +45,7 @@ def bridge(client_socket, client_id):
     )
     client_socket.sendall(bridge_request.encode())
     response = client_socket.recv(1024).decode().strip()
-    print("Server response:", response)
+    sys.stdout.write(f"Server response: {response}\n")
     return response
 
 def chat(client_socket, message):
@@ -37,7 +54,7 @@ def chat(client_socket, message):
         chat_message = f"CHAT\r\nMESSAGE:{message}\r\n\r\n"
         client_socket.sendall(chat_message.encode())
     except (BrokenPipeError, ConnectionResetError):
-        print("Failed to send: peer disconnected")
+        sys.stdout.write("Failed to send: peer disconnected\n")
         client_socket.close()
         raise  # Re-raise to handle in main loop
 
@@ -47,27 +64,27 @@ def quit_to_peer(client_socket):
         if client_socket:
             quit_message = "QUIT\r\nGoodbye!\r\n\r\n"
             client_socket.sendall(quit_message.encode())
-            print("\nQUIT message sent: Goodbye!")
+            sys.stdout.write("\nQUIT message sent: Goodbye!\n")
     except (BrokenPipeError, ConnectionResetError):
-        print("Failed to send: peer disconnected")
+        sys.stdout.write("Failed to send: peer disconnected\n")
         client_socket.close()
         raise
 
 def handle_peer_message(client_socket, response):
     """Handle incoming peer messages."""
     if not response:
-        print("Peer disconnected")
+        sys.stdout.write("Peer disconnected\n")
         return "Quit"
     elif response.startswith("CHAT"):
         message = response.split("\r\n")[1].split(":")[1].strip()
-        print(message)
+        sys.stdout.write(f"{message}\n")
         return "Chat"
     elif response.startswith("QUIT"):
-        print("Peer quit")
+        sys.stdout.write("Peer quit\n")
         client_socket.close()
         return "Quit"
     else:
-        print("Error: Invalid response from peer:", response)
+        sys.stdout.write(f"Error: Invalid response from peer: {response}\n")
         return "Chat"
 
 # Parse command line arguments
@@ -80,7 +97,7 @@ args = parser.parse_args()
 # Initialize client variables
 client_port = args.port if 1024 < args.port < 65536 else 5001
 if client_port != args.port:
-    print("Error: Invalid client port. Using default port 5001.")
+    sys.stdout.write("Error: Invalid client port. Using default port 5001.\n")
 
 client_state = "Zero"
 client_registered = False
@@ -97,7 +114,7 @@ try:
     ipaddress.ip_address(server_ip)
     server_port = int(server_port)
 except ValueError:
-    print("Error: Invalid client or server address format. Use --port=<Port> --server='<IP>:<Port>'.")
+    sys.stdout.write("Error: Invalid client or server address format. Use --port=<Port> --server='<IP>:<Port>'.\n")
     sys.exit(1)
 
 while True:
@@ -109,7 +126,7 @@ while True:
 
     # Handle common commands
     if user_input == "/id":
-        print(f"Client ID: {client_id}")
+        sys.stdout.write(f"Client ID: {client_id}\n")
     elif user_input == "/quit":
         client_state = "Quit"
         continue
@@ -121,25 +138,25 @@ while True:
                 try:
                     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     client_socket.connect((server_ip, server_port))
-                    print(f"Connected to server at {server_ip}:{server_port}")
+                    sys.stdout.write(f"Connected to server at {server_ip}:{server_port}\n")
                     register(client_socket, client_id, "127.0.0.1", client_port)
                     client_registered = True
                     client_socket.close()
                     client_socket = None
                 except Exception as e:
-                    print(f"Error registering to server: {e}")
+                    sys.stdout.write(f"Error registering to server: {e}\n")
             else:
-                print("Error: Client already registered to server.")
+                sys.stdout.write("Error: Client already registered to server.\n")
 
         elif user_input == "/bridge":
             if not client_registered:
-                print("Error: Client not registered.")
+                sys.stdout.write("Error: Client not registered.\n")
                 continue
 
             try:
                 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client_socket.connect((server_ip, server_port))
-                print(f"Connected to server at {server_ip}:{server_port}")
+                sys.stdout.write(f"Connected to server at {server_ip}:{server_port}\n")
                 
                 server_response = bridge(client_socket, client_id)
                 for line in server_response.split("\r\n"):
@@ -157,23 +174,23 @@ while True:
                 client_socket.close()
                 client_socket = None
             except Exception as e:
-                print(f"Error connecting to server: {e}")
+                sys.stdout.write(f"Error connecting to server: {e}\n")
 
         elif user_input == "/chat":
             if client_registered and peer_id:
                 client_state = "Chat"
                 read_write = WRITE
             else:
-                print("Error: Client not registered or no peer ID.")
+                sys.stdout.write("Error: Client not registered or no peer ID.\n")
         else:
-            print("Error: Invalid command.")
+            sys.stdout.write("Error: Invalid command.\n")
 
     elif client_state == "Wait":
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             peer_socket.bind(('127.0.0.1', client_port))
             peer_socket.listen(1)
-            print("Waiting for peer connection...")
+            sys.stdout.write("Waiting for peer connection...\n")
 
             while client_state == "Wait":
                 try:
@@ -181,7 +198,7 @@ while True:
                     for sock in readable:
                         if sock == peer_socket:
                             client_socket, addr = peer_socket.accept()
-                            print(f"Peer connected from {addr[0]}:{addr[1]}")
+                            sys.stdout.write(f"Peer connected from {addr[0]}:{addr[1]}\n")
                             client_state = "Chat"
                             read_write = READ
                             break
@@ -190,13 +207,13 @@ while True:
                             if user_input == "/quit":
                                 client_state = "Quit"
                                 break
-                            print("Can't send message while waiting to connect")
+                            sys.stdout.write("Can't send message while waiting to connect\n")
                 except KeyboardInterrupt:
                     client_state = "Quit"
                     break
 
         except Exception as e:
-            print(f"Error in wait state: {e}")
+            sys.stdout.write(f"Error in wait state: {e}\n")
             client_state = "Quit"
         finally:
             if peer_socket:
@@ -207,11 +224,11 @@ while True:
             try:
                 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client_socket.connect((peer_ip, peer_port))
-                print(f"Connected to peer at {peer_ip}:{peer_port}")
+                sys.stdout.write(f"Connected to peer at {peer_ip}:{peer_port}\n")
                 read_write = WRITE
             except Exception as e:
-                print(f"Error connecting to peer: {e}")
-                print(f"Relevant Details: {peer_ip}:{peer_port}")
+                sys.stdout.write(f"Error connecting to peer: {e}\n")
+                sys.stdout.write(f"Relevant Details: {peer_ip}:{peer_port}\n")
                 continue
 
         while client_state == "Chat":
@@ -223,7 +240,7 @@ while True:
                         if sock == client_socket:
                             response = client_socket.recv(1024).decode().strip()
                             if response.startswith("QUIT"):
-                                print("Peer quit")
+                                sys.stdout.write("Peer quit\n")
                                 client_socket.close()
                                 client_socket = None
                                 client_state = "Quit"
@@ -237,7 +254,7 @@ while True:
                                 chat(client_socket, chat_input)
                                 read_write *= -1
                             except Exception as e:
-                                print(f"Error sending to peer: {e}")
+                                sys.stdout.write(f"Error sending to peer: {e}\n")
                                 client_state = "Quit"
                                 break
 
@@ -256,10 +273,10 @@ while True:
                             if user_input == "/quit":
                                 client_state = "Quit"
                                 break
-                            print("Can't send message while waiting to receive")
+                            sys.stdout.write("Can't send message while waiting to receive\n")
                 
                 else:
-                    print("Error: Invalid read/write state.")
+                    sys.stdout.write("Error: Invalid read/write state.\n")
                     client_state = "Quit"
                     break
 
@@ -267,7 +284,7 @@ while True:
                 client_state = "Quit"
                 break
             except Exception as e:
-                print(f"Error in chat state: {e}")
+                sys.stdout.write(f"Error in chat state: {e}\n")
                 client_state = "Quit"
                 break
 
