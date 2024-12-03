@@ -280,7 +280,10 @@ while True:
                 break
 
     elif client_state == "Quit":
-        if client_socket:
-            quit_to_peer(client_socket)
-            client_socket.close()
+        try:
+            if client_socket:
+                quit_to_peer(client_socket)
+                client_socket.close()
+        except Exception as e:
+            client_socket = None
         sys.exit(0)
