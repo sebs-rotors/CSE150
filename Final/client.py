@@ -138,17 +138,17 @@ while True:
                         peer_ip = line.split(":")[1].strip()
                     if line.startswith("Port:"):
                         peer_port = int(line.split(":")[1].strip())
-            elif user_input == "/chat":
-                if client_registered and peer_id:
-                    client_state = "Chat"
-                    read_write = WRITE
-                else:
-                    print("Error: Client not registered or no peer ID.")
             else:
                 print("Error: Client not registered.")
                 continue
             client_socket.close()
             client_socket = None
+        elif user_input == "/chat":
+            if client_registered and peer_id:
+                client_state = "Chat"
+                read_write = WRITE
+            else:
+                print("Error: Client not registered or no peer ID.")
         else:
             print("Error: Invalid command.")
 
