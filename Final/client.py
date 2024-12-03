@@ -206,28 +206,29 @@ while True:
                 #     read_write = WRITE
                 readable, _, _ = select.select([client_socket, sys.stdin], [], [], None)
                 if read_write == WRITE:
-                    if sock == client_socket:
-                        response = client_socket.recv(1024).decode().strip()
-                        if response.startswith("QUIT"):
-                            print("Peer quit")
-                            client_socket.close()
-                            client_socket = None
-                            client_state = "Quit"
-                            break
-                    elif sock == sys.stdin:
-                        chat_input = sys.stdin.readline().strip()
-                        if chat_input == "/quit":
-                            client_state = "Quit"
-                            break
-                        try:
-                            chat(client_socket, chat_input)
-                        except Exception as e:
-                            print(f"Error sending to peer: {e}")
-                            client_state = "Quit"
-                            break
-                        read_write *= -1
-                    else:
-                        continue
+                    for sock in readable:
+                        if sock == client_socket:
+                            response = client_socket.recv(1024).decode().strip()
+                            if response.startswith("QUIT"):
+                                print("Peer quit")
+                                client_socket.close()
+                                client_socket = None
+                                client_state = "Quit"
+                                break
+                        elif sock == sys.stdin:
+                            chat_input = sys.stdin.readline().strip()
+                            if chat_input == "/quit":
+                                client_state = "Quit"
+                                break
+                            try:
+                                chat(client_socket, chat_input)
+                            except Exception as e:
+                                print(f"Error sending to peer: {e}")
+                                client_state = "Quit"
+                                break
+                            read_write *= -1
+                        else:
+                            continue
  
                 elif read_write == READ:
                     try:
