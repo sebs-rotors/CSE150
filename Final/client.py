@@ -132,13 +132,18 @@ while True:
                         peer_id = line.split(":")[1].strip()
                         if peer_id == "":
                             client_state = "Wait"
+                            read_write = READ
                             break
-                        else:
-                            client_state = "Chat"
                     if line.startswith("IP:"):
                         peer_ip = line.split(":")[1].strip()
                     if line.startswith("Port:"):
                         peer_port = int(line.split(":")[1].strip())
+            elif user_input == "/chat":
+                if client_registered and peer_id:
+                    client_state = "Chat"
+                    read_write = WRITE
+                else:
+                    print("Error: Client not registered or no peer ID.")
             else:
                 print("Error: Client not registered.")
                 continue
@@ -197,8 +202,8 @@ while True:
 
         while client_state == "Chat":
             try:
-                if read_write == 0:
-                    read_write = WRITE
+                # if read_write == 0:
+                #     read_write = WRITE
                 if read_write == WRITE:
                     chat_input = sys.stdin.readline().strip()
                     if chat_input == "/quit":
