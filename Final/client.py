@@ -38,7 +38,6 @@ def chat(client_socket, message):
     try:
         chat_message = f"CHAT\r\nMESSAGE:{message}\r\n\r\n"
         client_socket.sendall(chat_message.encode())
-        print(f"{message}")
     except (BrokenPipeError, ConnectionResetError):
         print("Failed to send: peer disconnected")
         raise  # Re-raise to handle in main loop
