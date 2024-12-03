@@ -103,7 +103,6 @@ def handle_client(client_socket, client_address):
 def handle_server_command(command):
     """Process server commands entered via stdin."""
     if command == "/info":
-        print("Registered clients:")
         for client_id, (ip, port) in registered_clients.items():
             print(f"{client_id} {ip}:{port}")
     else:
@@ -131,7 +130,6 @@ try:
         for notified_socket in readable:
             if notified_socket == server_socket:
                 client_socket, client_address = server_socket.accept()
-                print(f"New connection from {client_address}")
                 sockets_list.append(client_socket)
             elif notified_socket == sys.stdin:
                 command = sys.stdin.readline().strip()
