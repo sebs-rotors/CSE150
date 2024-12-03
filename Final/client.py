@@ -34,7 +34,7 @@ def register(client_socket, client_id, client_ip, client_port):
     )
     client_socket.sendall(register_request.encode())
     response = client_socket.recv(1024).decode().strip()
-    sys.stdout.write(f"Server response: {response}\n")
+    #sys.stdout.write(f"Server response: {response}\n")
     return response
 
 def bridge(client_socket, client_id):
@@ -45,7 +45,7 @@ def bridge(client_socket, client_id):
     )
     client_socket.sendall(bridge_request.encode())
     response = client_socket.recv(1024).decode().strip()
-    sys.stdout.write(f"Server response: {response}\n")
+    #sys.stdout.write(f"Server response: {response}\n")
     return response
 
 def chat(client_socket, message):
