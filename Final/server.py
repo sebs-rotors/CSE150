@@ -14,12 +14,12 @@ def handle_register(client_socket, client_address, message):
     client_port = headers.get("Port")
 
     if not client_id or not client_ip or not client_port:
-        print("Error: Invalid REGISTER message format.")
+        sys.stdout.write("Error: Invalid REGISTER message format.\n")
         return
 
     # Store client information
     registered_clients[client_id] = (client_ip, client_port)
-    print(f"REGISTER: {client_id} from {client_ip}:{client_port} received")
+    sys.stdout.write(f"REGISTER: {client_id} from {client_ip}:{client_port} received\n")
 
     # Respond with REGACK
     regack_message = (
@@ -35,7 +35,7 @@ def handle_register(client_socket, client_address, message):
 def handle_bridge(client_socket, client_id):
     """Process BRIDGE request and respond with BRIDGEACK."""
     if client_id not in registered_clients:
-        print(f"Error: Client {client_id} not registered.")
+        sys.stdout.write(f"Error: Client {client_id} not registered.\n")
         return
 
     # Get the peer client (if exists)
@@ -51,9 +51,9 @@ def handle_bridge(client_socket, client_id):
 
     # Print in requested format
     if peer_id:
-        print(f"BRIDGE: {client_id} {client_ip}:{client_port} {peer_id} {peer_ip}:{peer_port}")
+        sys.stdout.write(f"BRIDGE: {client_id} {client_ip}:{client_port} {peer_id} {peer_ip}:{peer_port}\n")
     else:
-        print(f"BRIDGE: {client_id} {client_ip}:{client_port}")
+        sys.stdout.write(f"BRIDGE: {client_id} {client_ip}:{client_port}\n")
 
     # Respond with BRIDGEACK
     bridgeack_message = (
@@ -91,12 +91,12 @@ def handle_client(client_socket, client_address):
             if client_id:
                 handle_bridge(client_socket, client_id)
             else:
-                print("Error: BRIDGE message missing clientID.")
+                sys.stdout.write("Error: BRIDGE message missing clientID.\n")
         else:
-            print("Error: Unknown request type.")
+            sys.stdout.write("Error: Unknown request type.\n")
         return True
     except Exception as e:
-        print(f"Error handling client {client_address}: {e}")
+        sys.stdout.write(f"Error handling client {client_address}: {e}\n")
         return False
 
 # Handle server commands from stdin
@@ -104,9 +104,9 @@ def handle_server_command(command):
     """Process server commands entered via stdin."""
     if command == "/info":
         for client_id, (ip, port) in registered_clients.items():
-            print(f"{client_id} {ip}:{port}")
+            sys.stdout.write(f"{client_id} {ip}:{port}\n")
     else:
-        print("Error: Unknown command.")
+        sys.stdout.write("Error: Unknown command.\n")
 
 parser = argparse.ArgumentParser(description="Server for Chat Application")
 parser.add_argument("--port", type=int, required=True, help="Server Port")
@@ -114,14 +114,14 @@ args = parser.parse_args()
 
 server_port = args.port if 1024 < args.port < 65536 else 8080
 if server_port != args.port:
-    print("Error: Invalid server port. Using default port 8080.")
+    sys.stdout.write("Error: Invalid server port. Using default port 8080.\n")
 server_ip = "127.0.0.1"
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_socket.bind((server_ip, server_port))
 server_socket.listen(3)
 
-print(f"Server listening on {server_ip}:{server_port}")
+sys.stdout.write(f"Server listening on {server_ip}:{server_port}\n")
 sockets_list = [server_socket, sys.stdin]
 
 try:
@@ -139,7 +139,7 @@ try:
                     sockets_list.remove(notified_socket)
                     notified_socket.close()
 except KeyboardInterrupt:
-    print("\nShutting down server.")
+    sys.stdout.write("Shutting down server.\n")
     sys.exit(0)
 finally:
     for sock in sockets_list:
