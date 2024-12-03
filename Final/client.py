@@ -190,6 +190,7 @@ while True:
     elif client_state == "Wait":
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             peer_socket.bind(('127.0.0.1', client_port))
             peer_socket.listen(1)
             #sys.stdout.write("Waiting for peer connection...\n")
