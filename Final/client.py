@@ -200,7 +200,7 @@ while True:
                     for sock in readable:
                         if sock == peer_socket:
                             client_socket, addr = peer_socket.accept()
-                            sys.stdout.write(f"Peer connected from {addr[0]}:{addr[1]}\n")
+                            sys.stdout.write(f"Incoming chat request from {peer_id} {addr[0]}:{addr[1]}\n")
                             client_state = "Chat"
                             read_write = READ
                             break
