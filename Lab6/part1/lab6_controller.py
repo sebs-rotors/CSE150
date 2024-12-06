@@ -52,24 +52,35 @@ class Routing (object):
     # Add this helper function for inter-subnet routing
     def get_next_hop_port(src_ip, dst_ip, switch_id):
         """Determine the output port for inter-subnet routing"""
+        # Convert string IPs to IP address objects for subnet checking
+        src_ip = ipaddress.ip_address(src_ip)
+        dst_ip = ipaddress.ip_address(dst_ip)
+        
         # If we're at the core switch (s1)
         if switch_id == 1:
-            if ipaddress.ip_address(dst_ip) in faculty_subnet:
+            if dst_ip in faculty_subnet:
                 return s1_ports['s2']
-            elif ipaddress.ip_address(dst_ip) in student_subnet:
+            elif dst_ip in student_subnet:
                 return s1_ports['s3']
-            elif ipaddress.ip_address(dst_ip) in it_subnet:
+            elif dst_ip in it_subnet:
                 return s1_ports['s5']
-            elif ipaddress.ip_address(dst_ip) in datacenter_subnet:
+            elif dst_ip in datacenter_subnet:
                 return s1_ports['s4']
+            elif str(dst_ip) == '10.0.203.6':  # trustedPC
+                return s1_ports['trustedPC']
         # If we're at an edge switch
         else:
             # If destination is in a different subnet, send to core switch
-            if str(dst_ip) not in switch_ports[switch_id]:
+            if not any(dst_ip in subnet for subnet in [
+                faculty_subnet if switch_id == 2 else None,
+                student_subnet if switch_id == 3 else None,
+                datacenter_subnet if switch_id == 4 else None,
+                it_subnet if switch_id == 5 else None
+            ] if subnet is not None):
                 return switch_ports[switch_id]['s1']  # Port connecting to core switch
             # If destination is in same subnet, send directly
             else:
-                return switch_ports[switch_id][str(dst_ip)]
+                return switch_ports[switch_id].get(str(dst_ip))
         return None
 
     # Handle ARP traffic first
