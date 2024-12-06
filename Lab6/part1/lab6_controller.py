@@ -74,7 +74,12 @@ class Routing (object):
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
-        accept(packet, packet_in, of.OFPP_FLOOD)
+        print("ARP packet detected - flooding")
+        msg = of.ofp_packet_out()
+        msg.data = packet_in
+        msg.in_port = port_on_switch
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+        self.connection.send(msg)
         return
 
     # Get IP packet
