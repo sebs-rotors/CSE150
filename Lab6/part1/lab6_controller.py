@@ -74,7 +74,7 @@ class Routing (object):
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
-        accept(packet, packet_in)
+        accept(packet, packet_in, of.OFPP_FLOOD)
         return
 
     # Get IP packet
