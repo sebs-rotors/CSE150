@@ -21,13 +21,13 @@ class Routing (object):
     # Add debug logging at the start
     print(f"\nPacket received on switch s{switch_id} port {port_on_switch}")
     
-    def accept(packet, packet_in, out_port=None):   
+    def accept(packet, packet_in, out_port):   # Removed default None parameter
         msg = of.ofp_flow_mod()
         msg.match = of.ofp_match.from_packet(packet)
-        msg.match.in_port = port_on_switch  # Explicitly match input port
+        msg.match.in_port = port_on_switch
         msg.idle_timeout = 45
         msg.hard_timeout = 300
-        msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD if out_port is None else out_port))
+        msg.actions.append(of.ofp_action_output(port=out_port))  # Removed FLOOD option
         msg.data = packet_in
         self.connection.send(msg)
         
@@ -35,7 +35,7 @@ class Routing (object):
         msg2 = of.ofp_packet_out()
         msg2.data = packet_in
         msg2.in_port = port_on_switch
-        msg2.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD if out_port is None else out_port))
+        msg2.actions.append(of.ofp_action_output(port=out_port))  # Removed FLOOD option
         self.connection.send(msg2)
         print(f"Packet sent immediately from port {port_on_switch} to port {out_port}")
 
@@ -150,44 +150,20 @@ class Routing (object):
     if packet.find('icmp') is not None:
         print("ICMP packet detected")
         
-        # Check subnet membership
-        src_in_student = ipaddress.ip_address(src_ip) in student_subnet
-        src_in_faculty = ipaddress.ip_address(src_ip) in faculty_subnet
-        src_in_it = ipaddress.ip_address(src_ip) in it_subnet
+        # Only allow ICMP between Student, Faculty, and IT subnets
+        allowed_subnets = [student_subnet, faculty_subnet, it_subnet]
+        src_allowed = any(ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets)
+        dst_allowed = any(ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets)
         
-        dst_in_student = ipaddress.ip_address(dst_ip) in student_subnet
-        dst_in_faculty = ipaddress.ip_address(dst_ip) in faculty_subnet
-        dst_in_it = ipaddress.ip_address(dst_ip) in it_subnet
+        if not (src_allowed and dst_allowed):
+            print("ICMP traffic not allowed between these subnets")
+            drop(packet, packet_in)
+            return
 
-        # Handle routing based on switch
-        if switch_id == 1:  # Core switch
-            if dst_in_faculty:
-                accept(packet, packet_in, s1_ports['s2'])
-            elif dst_in_student:
-                accept(packet, packet_in, s1_ports['s3'])
-            elif dst_in_it:
-                accept(packet, packet_in, s1_ports['s5'])
-            else:
-                drop(packet, packet_in)
-        
-        elif switch_id == 5:  # IT switch
-            if str(dst_ip) in s5_ports:  # Destination is in this subnet
-                accept(packet, packet_in, s5_ports[str(dst_ip)])
-            else:  # Need to forward to core switch
-                accept(packet, packet_in, s5_ports['s1'])
-        
-        elif switch_id == 2:  # Faculty switch
-            if str(dst_ip) in s2_ports:
-                accept(packet, packet_in, s2_ports[str(dst_ip)])
-            else:
-                accept(packet, packet_in, s2_ports['s1'])
-        
-        elif switch_id == 3:  # Student switch
-            if str(dst_ip) in s3_ports:
-                accept(packet, packet_in, s3_ports[str(dst_ip)])
-            else:
-                accept(packet, packet_in, s3_ports['s1'])
-        
+        # Get next hop port using the helper function
+        out_port = get_next_hop_port(src_ip, dst_ip, switch_id)
+        if out_port is not None:
+            accept(packet, packet_in, out_port)
         else:
             drop(packet, packet_in)
         return
@@ -196,83 +172,25 @@ class Routing (object):
     elif packet.find('tcp') is not None:
         print("TCP packet detected")
         
-        # Check subnet membership
-        src_in_student = ipaddress.ip_address(src_ip) in student_subnet
-        src_in_faculty = ipaddress.ip_address(src_ip) in faculty_subnet
-        src_in_it = ipaddress.ip_address(src_ip) in it_subnet
-        src_in_datacenter = ipaddress.ip_address(src_ip) in datacenter_subnet
-        src_is_trusted = str(src_ip) == '10.0.203.6'  # trustedPC IP
-        
-        dst_in_student = ipaddress.ip_address(dst_ip) in student_subnet
-        dst_in_faculty = ipaddress.ip_address(dst_ip) in faculty_subnet
-        dst_in_it = ipaddress.ip_address(dst_ip) in it_subnet
-        dst_in_datacenter = ipaddress.ip_address(dst_ip) in datacenter_subnet
-        dst_is_trusted = str(dst_ip) == '10.0.203.6'  # trustedPC IP
-        dst_is_examserver = str(dst_ip) == '10.100.100.2'  # examServer IP
-
-        # Check if source and destination are in same subnet
-        same_subnet = (
-            (src_in_student and dst_in_student) or
-            (src_in_faculty and dst_in_faculty) or
-            (src_in_it and dst_in_it) or
-            (src_in_datacenter and dst_in_datacenter)
-        )
-
-        # Check if it's allowed cross-subnet communication
-        allowed_subnets = (
-            (src_in_student or src_in_faculty or src_in_it or src_in_datacenter or src_is_trusted) and
-            (dst_in_student or dst_in_faculty or dst_in_it or dst_in_datacenter or dst_is_trusted)
-        )
-
         # Special case: Only faculty can access exam server
-        if dst_is_examserver and not src_in_faculty:
+        if str(dst_ip) == '10.100.100.2' and not ipaddress.ip_address(src_ip) in faculty_subnet:
             print("Non-faculty access to exam server denied")
             drop(packet, packet_in)
             return
 
-        if not (same_subnet or allowed_subnets):
+        # Allow TCP between all internal subnets and trustedPC
+        allowed_subnets = [student_subnet, faculty_subnet, it_subnet, datacenter_subnet]
+        src_allowed = (ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets) or str(src_ip) == '10.0.203.6'
+        dst_allowed = (ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets) or str(dst_ip) == '10.0.203.6'
+        
+        if not (src_allowed and dst_allowed):
             print("TCP traffic not allowed between these subnets")
             drop(packet, packet_in)
             return
 
-        # Handle routing based on switch
-        if switch_id == 1:  # Core switch
-            if dst_in_faculty:
-                accept(packet, packet_in, s1_ports['s2'])
-            elif dst_in_student:
-                accept(packet, packet_in, s1_ports['s3'])
-            elif dst_in_datacenter:
-                accept(packet, packet_in, s1_ports['s4'])
-            elif dst_in_it:
-                accept(packet, packet_in, s1_ports['s5'])
-            elif dst_is_trusted:
-                accept(packet, packet_in, s1_ports['trustedPC'])
-            else:
-                drop(packet, packet_in)
-        
-        elif switch_id == 2:  # Faculty switch
-            if str(dst_ip) in s2_ports:
-                accept(packet, packet_in, s2_ports[str(dst_ip)])
-            else:
-                accept(packet, packet_in, s2_ports['s1'])
-        
-        elif switch_id == 3:  # Student switch
-            if str(dst_ip) in s3_ports:
-                accept(packet, packet_in, s3_ports[str(dst_ip)])
-            else:
-                accept(packet, packet_in, s3_ports['s1'])
-        
-        elif switch_id == 4:  # Data Center switch
-            if str(dst_ip) in s4_ports:
-                accept(packet, packet_in, s4_ports[str(dst_ip)])
-            else:
-                accept(packet, packet_in, s4_ports['s1'])
-        
-        elif switch_id == 5:  # IT switch
-            if str(dst_ip) in s5_ports:
-                accept(packet, packet_in, s5_ports[str(dst_ip)])
-            else:
-                accept(packet, packet_in, s5_ports['s1'])
+        out_port = get_next_hop_port(src_ip, dst_ip, switch_id)
+        if out_port is not None:
+            accept(packet, packet_in, out_port)
         else:
             drop(packet, packet_in)
         return
