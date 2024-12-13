@@ -42,12 +42,16 @@ class Routing (object):
     def drop(packet, packet_in):
         """Drop a packet and install a flow rule to continue dropping similar packets"""
         msg = of.ofp_flow_mod()
-        msg.match = of.ofp_match.from_packet(packet)
-        msg.idle_timeout = 45
-        msg.hard_timeout = 300
-        msg.data = packet_in
-        self.connection.send(msg)
-        print("Packet dropped")
+        msg.match = of.ofp_match()
+        msg.match.in_port = port_on_switch
+        srcip = packet.find('ipv4').srcip
+        dstip = packet.find('ipv4').dstip
+        if (srcip in subnet for subnet in subnets):
+            msg.idle_timeout = 45
+            msg.hard_timeout = 300
+            msg.data = packet_in
+            self.connection.send(msg)
+            print("Packet dropped")
 
     # Add this helper function for inter-subnet routing
     def get_next_hop_port(src_ip, dst_ip, switch_id):
@@ -58,13 +62,13 @@ class Routing (object):
         
         # If we're at the core switch (s1)
         if switch_id == 1:
-            if dst_ip in faculty_subnet:
+            if dst_ip in subnets[1]:
                 return s1_ports['s2']
-            elif dst_ip in student_subnet:
+            elif dst_ip in subnets[0]:
                 return s1_ports['s3']
-            elif dst_ip in it_subnet:
+            elif dst_ip in subnets[2]:
                 return s1_ports['s5']
-            elif dst_ip in datacenter_subnet:
+            elif dst_ip in subnets[3]:
                 return s1_ports['s4']
             elif str(dst_ip) == '10.0.203.6':  # trustedPC
                 return s1_ports['trustedPC']
@@ -72,10 +76,10 @@ class Routing (object):
         else:
             # If destination is in a different subnet, send to core switch
             if not any(dst_ip in subnet for subnet in [
-                faculty_subnet if switch_id == 2 else None,
-                student_subnet if switch_id == 3 else None,
-                datacenter_subnet if switch_id == 4 else None,
-                it_subnet if switch_id == 5 else None
+                subnets[1] if switch_id == 2 else None,
+                subnets[0] if switch_id == 3 else None,
+                subnets[3] if switch_id == 4 else None,
+                subnets[2] if switch_id == 5 else None
             ] if subnet is not None):
                 return switch_ports[switch_id]['s1']  # Port connecting to core switch
             # If destination is in same subnet, send directly
@@ -105,10 +109,12 @@ class Routing (object):
     print(f"Processing packet: {src_ip} -> {dst_ip}")
 
     # Define subnets
-    student_subnet = ipaddress.ip_network('10.0.2.0/24')
-    faculty_subnet = ipaddress.ip_network('10.0.1.0/24')
-    it_subnet = ipaddress.ip_network('10.40.3.0/24')
-    datacenter_subnet = ipaddress.ip_network('10.100.100.0/24')
+    subnets = [
+        ipaddress.ip_network('10.0.2.0/24'),    # student subnet
+        ipaddress.ip_network('10.0.1.0/24'),    # faculty subnet 
+        ipaddress.ip_network('10.40.3.0/24'),   # IT subnet
+        ipaddress.ip_network('10.100.100.0/24') # datacenter subnet
+    ]
     # Port mappings for each switch
     # Core Switch (s1) ports
     s1_ports = {
@@ -167,12 +173,13 @@ class Routing (object):
         print("ICMP packet detected")
         
         # Only allow ICMP between Student, Faculty, and IT subnets
-        allowed_subnets = [student_subnet, faculty_subnet, it_subnet]
+        allowed_subnets = [subnets[0], subnets[1], subnets[2]]
         src_allowed = any(ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets)
         dst_allowed = any(ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets)
-        same_subnet = (ipaddress.ip_address(src_ip) in student_subnet and ipaddress.ip_address(dst_ip) in student_subnet) or \
-                      (ipaddress.ip_address(src_ip) in faculty_subnet and ipaddress.ip_address(dst_ip) in faculty_subnet) or \
-                      (ipaddress.ip_address(src_ip) in it_subnet and ipaddress.ip_address(dst_ip) in it_subnet)
+        for subnet in subnets:
+            if ipaddress.ip_address(src_ip) in subnet and ipaddress.ip_address(dst_ip) in subnet:
+                same_subnet = True
+                break
         
         if not ((src_allowed and dst_allowed) or same_subnet):
             print("ICMP traffic not allowed between these subnets")
@@ -192,13 +199,13 @@ class Routing (object):
         print("TCP packet detected")
         
         # Special case: Only faculty can access exam server
-        if str(dst_ip) == '10.100.100.2' and not ipaddress.ip_address(src_ip) in faculty_subnet:
+        if str(dst_ip) == '10.100.100.2' and not ipaddress.ip_address(src_ip) in subnets[1]:
             print("Non-faculty access to exam server denied")
             drop(packet, packet_in)
             return
 
         # Allow TCP between all internal subnets and trustedPC
-        allowed_subnets = [student_subnet, faculty_subnet, it_subnet, datacenter_subnet]
+        allowed_subnets = [subnets[0], subnets[1], subnets[2], subnets[3]]
         src_allowed = (ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets) or str(src_ip) == '10.0.203.6'
         dst_allowed = (ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets) or str(dst_ip) == '10.0.203.6'
         
@@ -219,15 +226,15 @@ class Routing (object):
         print("UDP packet detected")
         
         # Check subnet membership
-        src_in_student = ipaddress.ip_address(src_ip) in student_subnet
-        src_in_faculty = ipaddress.ip_address(src_ip) in faculty_subnet
-        src_in_it = ipaddress.ip_address(src_ip) in it_subnet
-        src_in_datacenter = ipaddress.ip_address(src_ip) in datacenter_subnet
+        src_in_student = ipaddress.ip_address(src_ip) in subnets[0]
+        src_in_faculty = ipaddress.ip_address(src_ip) in subnets[1]
+        src_in_it = ipaddress.ip_address(src_ip) in subnets[2]
+        src_in_datacenter = ipaddress.ip_address(src_ip) in subnets[3]
         
-        dst_in_student = ipaddress.ip_address(dst_ip) in student_subnet
-        dst_in_faculty = ipaddress.ip_address(dst_ip) in faculty_subnet
-        dst_in_it = ipaddress.ip_address(dst_ip) in it_subnet
-        dst_in_datacenter = ipaddress.ip_address(dst_ip) in datacenter_subnet
+        dst_in_student = ipaddress.ip_address(dst_ip) in subnets[0]
+        dst_in_faculty = ipaddress.ip_address(dst_ip) in subnets[1]
+        dst_in_it = ipaddress.ip_address(dst_ip) in subnets[2]
+        dst_in_datacenter = ipaddress.ip_address(dst_ip) in subnets[3]
 
         # Check if source and destination are in same subnet
         same_subnet = (
