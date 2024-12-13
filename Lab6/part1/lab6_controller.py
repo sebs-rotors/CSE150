@@ -176,6 +176,7 @@ class Routing (object):
         allowed_subnets = [subnets[0], subnets[1], subnets[2]]
         src_allowed = any(ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets)
         dst_allowed = any(ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets)
+        same_subnet = False
         for subnet in subnets:
             if ipaddress.ip_address(src_ip) in subnet and ipaddress.ip_address(dst_ip) in subnet:
                 same_subnet = True
