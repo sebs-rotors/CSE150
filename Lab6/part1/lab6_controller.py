@@ -85,7 +85,7 @@ class Routing (object):
 
     # Handle ARP traffic first
     if packet.find('arp') is not None:
-        print("ARP packet detected - flooding")
+        # print("ARP packet detected - flooding")
         msg = of.ofp_packet_out()
         msg.data = packet_in
         msg.in_port = port_on_switch
@@ -170,9 +170,9 @@ class Routing (object):
         allowed_subnets = [student_subnet, faculty_subnet, it_subnet]
         src_allowed = any(ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets)
         dst_allowed = any(ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets)
-        same_subnet = (ipaddress.ip_address(src_ip) in student_subnet and ipaddress.ip_address(dst_ip) in student_subnet) or \
-                      (ipaddress.ip_address(src_ip) in faculty_subnet and ipaddress.ip_address(dst_ip) in faculty_subnet) or \
-                      (ipaddress.ip_address(src_ip) in it_subnet and ipaddress.ip_address(dst_ip) in it_subnet)
+        srcnw = ".".join(src_ip.split(".")[:3])
+        dstnw = ".".join(dst_ip.split(".")[:3])
+        same_subnet = (srcnw == dstnw)
         
         if not ((src_allowed and dst_allowed) or same_subnet):
             print("ICMP traffic not allowed between these subnets")
