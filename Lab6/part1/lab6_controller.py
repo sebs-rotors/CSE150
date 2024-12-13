@@ -170,8 +170,9 @@ class Routing (object):
         allowed_subnets = [student_subnet, faculty_subnet, it_subnet]
         src_allowed = any(ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets)
         dst_allowed = any(ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets)
+        same_subnet = (ipaddress.ip_address(src_ip) in student_subnet and ipaddress.ip_address(dst_ip) in student_subnet) or (ipaddress.ip_address(src_ip) in faculty_subnet and ipaddress.ip_address(dst_ip) in faculty_subnet) or (ipaddress.ip_address(src_ip) in it_subnet and ipaddress.ip_address(dst_ip) in it_subnet)
         
-        if not (src_allowed and dst_allowed):
+        if not (src_allowed and dst_allowed or same_subnet):
             print("ICMP traffic not allowed between these subnets")
             drop(packet, packet_in)
             return
