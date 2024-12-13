@@ -23,34 +23,34 @@ class MyTopology(Topo):
     
     # We're gonna do hosts and links BY NETWORK:
     # University Data Center
-    examServer = self.addHost('examServer', ip='10.100.100.2/24', mac='00:00:00:00:00:01')
-    webServer = self.addHost('webServer', ip='10.100.100.20/24', mac='00:00:00:00:00:02')
-    dnsServer = self.addHost('dnsServer', ip='10.100.100.56/24', mac='00:00:00:00:00:03')
+    examServer = self.addHost('examServer', ip='10.100.100.2/24', mac='00:00:00:00:00:01', defaultRoute='examServer-eth1')
+    webServer = self.addHost('webServer', ip='10.100.100.20/24', mac='00:00:00:00:00:02', defaultRoute='webServer-eth1')
+    dnsServer = self.addHost('dnsServer', ip='10.100.100.56/24', mac='00:00:00:00:00:03', defaultRoute='dnsServer-eth1')
     
     self.addLink(examServer, dataCenterSwitch, port1=1, port2=2)
     self.addLink(webServer, dataCenterSwitch, port1=1, port2=3)
     self.addLink(dnsServer, dataCenterSwitch, port1=1, port2=4)
     
     # IT Department LAN
-    itWS = self.addHost('itWS', ip='10.40.3.30/24', mac='00:00:10:00:00:01')
-    itPC = self.addHost('itPC', ip='10.40.3.254/24', mac='00:00:10:00:00:02')
+    itWS = self.addHost('itWS', ip='10.40.3.30/24', mac='00:00:10:00:00:01', defaultRoute='itWS-eth1')
+    itPC = self.addHost('itPC', ip='10.40.3.254/24', mac='00:00:10:00:00:02', defaultRoute='itPC-eth1')
     
     self.addLink(itWS, itSwitch, port1=1, port2=2)
     self.addLink(itPC, itSwitch, port1=1, port2=3)
     
     # Faculty LAN
-    facultyWS = self.addHost('facultyWS', ip='10.0.1.2/24', mac='00:00:20:00:00:01')
-    facultyPC = self.addHost('facultyPC', ip='10.0.1.4/24', mac='00:00:20:00:00:02')
-    printer = self.addHost('printer', ip='10.0.1.3/24', mac='00:00:20:00:00:03')
+    facultyWS = self.addHost('facultyWS', ip='10.0.1.2/24', mac='00:00:20:00:00:01', defaultRoute='facultyWS-eth1')
+    facultyPC = self.addHost('facultyPC', ip='10.0.1.4/24', mac='00:00:20:00:00:02', defaultRoute='facultyPC-eth1')
+    printer = self.addHost('printer', ip='10.0.1.3/24', mac='00:00:20:00:00:03', defaultRoute='printer-eth1')
     
     self.addLink(facultyWS, facultySwitch, port1=1, port2=2)
     self.addLink(facultyPC, facultySwitch, port1=1, port2=3)
     self.addLink(printer, facultySwitch, port1=1, port2=4)
     
     # Student Housing LAN
-    studentPC1 = self.addHost('studentPC1', ip='10.0.2.2/24', mac='00:00:30:00:00:01')
-    studentPC2 = self.addHost('studentPC2', ip='10.0.2.40/24', mac='00:00:30:00:00:02')
-    labWS = self.addHost('labWS', ip='10.0.2.3/24', mac='00:00:30:00:00:03')
+    studentPC1 = self.addHost('studentPC1', ip='10.0.2.2/24', mac='00:00:30:00:00:01', defaultRoute='studentPC1-eth1')
+    studentPC2 = self.addHost('studentPC2', ip='10.0.2.40/24', mac='00:00:30:00:00:02', defaultRoute='studentPC2-eth1')
+    labWS = self.addHost('labWS', ip='10.0.2.3/24', mac='00:00:30:00:00:03', defaultRoute='labWS-eth1')
     
     self.addLink(studentPC1, studentSwitch, port1=1, port2=2)
     self.addLink(studentPC2, studentSwitch, port1=1, port2=3)
@@ -58,9 +58,9 @@ class MyTopology(Topo):
     self.addLink(studentPC1, labWS, port1=2, port2=2)
     
     # Internet
-    trustedPC = self.addHost('trustedPC', ip='10.0.203.6/32', mac='00:00:40:00:00:01')
-    guest1 = self.addHost('guest1', ip='10.0.196.6/32', mac='00:00:40:00:00:02')
-    guest2 = self.addHost('guest2', ip='10.0.198.10/32', mac='00:00:40:00:00:03')
+    trustedPC = self.addHost('trustedPC', ip='10.0.203.6/32', mac='00:00:40:00:00:01', defaultRoute='trustedPC-eth1')
+    guest1 = self.addHost('guest1', ip='10.0.196.6/32', mac='00:00:40:00:00:02', defaultRoute='guest1-eth1')
+    guest2 = self.addHost('guest2', ip='10.0.198.10/32', mac='00:00:40:00:00:03', defaultRoute='guest2-eth1')
 
     self.addLink(guest1, coreSwitch, port1=1, port2=5)
     self.addLink(guest2, coreSwitch, port1=1, port2=6)

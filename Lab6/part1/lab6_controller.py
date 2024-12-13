@@ -174,7 +174,7 @@ class Routing (object):
                       (ipaddress.ip_address(src_ip) in faculty_subnet and ipaddress.ip_address(dst_ip) in faculty_subnet) or \
                       (ipaddress.ip_address(src_ip) in it_subnet and ipaddress.ip_address(dst_ip) in it_subnet)
         
-        if not (src_allowed and dst_allowed or same_subnet):
+        if not ((src_allowed and dst_allowed) or same_subnet):
             print("ICMP traffic not allowed between these subnets")
             drop(packet, packet_in)
             return
