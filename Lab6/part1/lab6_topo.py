@@ -66,6 +66,11 @@ class MyTopology(Topo):
     self.addLink(guest2, coreSwitch, port1=1, port2=6)
     self.addLink(trustedPC, coreSwitch, port1=1, port2=7)
 
+    self.addSubnet(nodes=[studentPC1, studentPC2, labWS], subnets='10.0.2.0/24')
+    self.addSubnet(nodes=[facultyPC, facultyWS, printer], subnets='10.0.1.0/24')
+    self.addSubnet(nodes=[examServer, webServer, dnsServer], subnets='10.100.100.0/24')
+    self.addSubnet(nodes=[itWS, itPC], subnets='10.40.3.0/24')
+
     # switch1 = self.addSwitch('s1')
 
     # self.addLink(laptop1, switch1, port1=1, port2=2)
@@ -74,7 +79,7 @@ if __name__ == '__main__':
   #This part of the script is run when the script is executed
   topo = MyTopology() #Creates a topology
   c0 = RemoteController(name='c0', controller=RemoteController, ip='127.0.0.1', port=6633) #Creates a remote controller
-  net = Mininet(topo=topo, controller=c0) #Loads the topology
+  net = Mininet(topo=topo, controller=c0, allocate_IPs=False) #Loads the topology
   net.start() #Starts mininet
   CLI(net) #Opens a command line to run commands on the simulated topology
   net.stop() #Stops mininet
