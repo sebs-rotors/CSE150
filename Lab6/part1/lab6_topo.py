@@ -3,6 +3,7 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.node import RemoteController
+from ipmininet.ipnet import IPNet
 
 class MyTopology(Topo):
   def __init__(self):
