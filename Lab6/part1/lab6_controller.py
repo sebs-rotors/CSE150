@@ -4,7 +4,7 @@ from pox.core import core
 import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
 import ipaddress
-from ipmininet.ipnet import IPNet
+
 log = core.getLogger()
 
 class Routing (object):

@@ -3,7 +3,6 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.node import RemoteController
-from ipmininet.ipnet import IPNet
 
 class MyTopology(Topo):
   def __init__(self):
@@ -66,11 +65,6 @@ class MyTopology(Topo):
     self.addLink(guest1, coreSwitch, port1=1, port2=5)
     self.addLink(guest2, coreSwitch, port1=1, port2=6)
     self.addLink(trustedPC, coreSwitch, port1=1, port2=7)
-
-    self.addSubnet(nodes=[studentPC1, studentPC2, labWS], subnets='10.0.2.0/24')
-    self.addSubnet(nodes=[facultyPC, facultyWS, printer], subnets='10.0.1.0/24')
-    self.addSubnet(nodes=[examServer, webServer, dnsServer], subnets='10.100.100.0/24')
-    self.addSubnet(nodes=[itWS, itPC], subnets='10.40.3.0/24')
 
     # switch1 = self.addSwitch('s1')
 
