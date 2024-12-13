@@ -161,7 +161,10 @@ class Routing (object):
         5: s5_ports   # IT switch
     }
 
-
+    def get_subnet(ip_address, subnet_mask):
+        network = ipaddress.ip_network(f"{ip_address}/{subnet_mask}", strict=False)
+        return network.network_address
+    
     # Rule 1: ICMP Traffic
     if packet.find('icmp') is not None:
         print("ICMP packet detected")
@@ -170,9 +173,7 @@ class Routing (object):
         allowed_subnets = [student_subnet, faculty_subnet, it_subnet]
         src_allowed = any(ipaddress.ip_address(src_ip) in subnet for subnet in allowed_subnets)
         dst_allowed = any(ipaddress.ip_address(dst_ip) in subnet for subnet in allowed_subnets)
-        srcnw = ".".join(src_ip.split(".")[:3])
-        dstnw = ".".join(dst_ip.split(".")[:3])
-        same_subnet = (srcnw == dstnw)
+        same_subnet = get_subnet(src_ip, "255.255.255.0") == get_subnet(dst_ip, "255.255.255.0")
         
         if not ((src_allowed and dst_allowed) or same_subnet):
             print("ICMP traffic not allowed between these subnets")
